@@ -149,5 +149,6 @@ print_with_delay "客户端配置文件已保存到 /root/hy2/config.yaml" 0.03
 
 # 显示 Hysteria 服务状态
 systemctl status hysteria-server.service
+print_with_delay " **************Hysteria 2.catmi.客户端配置**************" 0.03
 cat /root/hy2/config.yaml
-print_with_delay " **************Hysteria 2.catmi**************" 0.03
+print_with_delay " **************Hysteria 2.catmi.结束**************" 0.03
