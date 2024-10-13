@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# 定义带延迟的打印函数
+# 显示带延迟的打印
 print_with_delay() {
     local message="$1"
     local delay="$2"
     for (( i=0; i<${#message}; i++ )); do
-        echo -n "${message:$i:1}"
+        printf "%s" "${message:i:1}"
         sleep "$delay"
     done
     echo
 }
-print_with_delay "Hysteria2 catmi" 0.03
+print_with_delay "Hysteria2  catmi" 0.03
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
 
-# 生成自签名证书
+# 生成自签证书
 print_with_delay "生成自签名证书..." 0.03
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
     -keyout /etc/hysteria/server.key -out /etc/hysteria/server.crt \
@@ -26,9 +26,6 @@ openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
 # 自动生成密码
 AUTH_PASSWORD=$(openssl rand -base64 16)
 OBFS_PASSWORD=$(openssl rand -base64 16)
-
-# 提示输入监听端口号
-read -p "请输入监听端口: " PORT
 
 # 获取内网 IP 和公网 IP
 echo "正在获取设备的内网 IP 地址..."
@@ -41,36 +38,39 @@ if [ -z "$PUBLIC_IP" ]; then
     echo "没有检测到公网 IP。"
 else
     echo "公网 IP 地址: $PUBLIC_IP"
-fi
-
-# 仅显示公网 IP
-if [ -n "$PUBLIC_IP" ]; then
     echo "1. 公网 IP 地址: $PUBLIC_IP"
-else
-    echo "请输入手动输入的服务器 IP 地址:"
-    read -p "服务器 IP: " SERVER_IP
-    SERVER_CHOICE=$SERVER_IP
 fi
 
-# 如果有内网 IP，选择是否显示
+# 如果有内网 IP，显示并选择
 if [ -n "$INTERNAL_IPS" ]; then
     echo "内网 IP 地址:"
-    select IP in $INTERNAL_IPS; do
-        if [[ -n $IP ]]; then
-            SERVER_CHOICE=${SERVER_CHOICE:-$IP}
-            break
-        else
-            echo "无效选择，退出脚本"
-            exit 1
-        fi
-    done
+    echo "$INTERNAL_IPS" | nl -w 2 -s '. '  # 使用 nl 命令给内网 IP 添加行号
 fi
+
+# 合并选项并允许用户选择
+if [ -n "$PUBLIC_IP" ]; then
+    CHOICES=("$PUBLIC_IP" $INTERNAL_IPS)
+else
+    CHOICES=($INTERNAL_IPS)
+fi
+
+# 让用户选择
+select CHOSEN_IP in "${CHOICES[@]}"; do
+    if [[ -n $CHOSEN_IP ]]; then
+        SERVER_CHOICE=$CHOSEN_IP
+        break
+    else
+        echo "无效选择，请重新选择."
+    fi
 done
+
+# 提示输入监听端口号
+read -p "请输入监听端口: " PORT
 
 # 创建 Hysteria 2 服务端配置文件
 print_with_delay "生成 Hysteria 2 配置文件..." 0.03
 cat << EOF > /etc/hysteria/config.yaml
-listen: ":$PORT"  # 这里使用省略地址的格式，只监听端口
+listen: "*:$PORT"
 
 tls:
   cert: /etc/hysteria/server.crt
@@ -92,15 +92,18 @@ obfs:
     password: $OBFS_PASSWORD
 EOF
 
+# 重启 Hysteria 服务以应用配置
+print_with_delay "重启 Hysteria 服务以应用新配置..." 0.03
+systemctl restart hysteria-server.service
+
 # 启动并启用 Hysteria 服务
 print_with_delay "启动 Hysteria 服务..." 0.03
-systemctl start hysteria-server.service
 systemctl enable hysteria-server.service
 
 # 创建客户端配置文件目录
 mkdir -p /root/hy2
 
-# 生成客户端配置文件，使用用户选择的 IP 地址和服务端端口
+# 生成客户端配置文件，使用用户输入的 IP 地址和服务端端口
 print_with_delay "生成客户端配置文件..." 0.03
 cat << EOF > /root/hy2/config.yaml
 port: 7890
@@ -134,7 +137,7 @@ dns:
 
 proxies:        
   - name: Hysteria2
-    server: $SELECTED_IP
+    server: $SERVER_CHOICE
     port: $PORT
     type: hysteria2
     up: "40 Mbps"
@@ -170,21 +173,13 @@ rules:
   - MATCH,节点选择
 EOF
 
-# 显示生成的密码
+# 显示生成的密码和状态
 print_with_delay "Hysteria 2 安装和配置完成！" 0.03
-print_with_delay "认证密码: $AUTH_PASSWORD" 0.03
-print_with_delay "混淆密码: $OBFS_PASSWORD" 0.03
-print_with_delay "服务端配置文件已保存到 /etc/hysteria/config.yaml" 0.03
-print_with_delay "客户端配置文件已保存到 /root/hy2/config.yaml" 0.03
-
-# 重启 Hysteria 服务以应用配置
-print_with_delay "重启 Hysteria 服务以应用新配置..." 0.03
-systemctl restart hysteria-server.service
+echo "认证密码: $AUTH_PASSWORD"
+echo "混淆密码: $OBFS_PASSWORD"
+echo "服务端配置文件已保存到 /etc/hysteria/config.yaml"
+echo "客户端配置文件已保存到 /root/hy2/config.yaml"
 
 # 显示 Hysteria 服务状态
-print_with_delay "显示 Hysteria 服务状态..." 0.03
-systemctl status hysteria-server.service --no-pager
-
-# 显示客户端配置文件的内容
-print_with_delay "客户端配置文件内容如下:" 0.03
-cat /root/hy2/config.yaml
+systemctl status hysteria-server.service
+cat /etc/hysteria/config.yaml
