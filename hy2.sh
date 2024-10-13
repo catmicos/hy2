@@ -10,7 +10,7 @@ print_with_delay() {
     done
     echo
 }
-print_with_delay "Hysteria2  catmi" 0.03
+
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -48,10 +48,14 @@ if [ -n "$INTERNAL_IPS" ]; then
 fi
 
 # 合并选项并允许用户选择
+CHOICES=()
 if [ -n "$PUBLIC_IP" ]; then
-    CHOICES=("$PUBLIC_IP" $INTERNAL_IPS)
-else
-    CHOICES=($INTERNAL_IPS)
+    CHOICES+=("$PUBLIC_IP")
+fi
+if [ -n "$INTERNAL_IPS" ]; then
+    while IFS= read -r line; do
+        CHOICES+=("$line")
+    done <<< "$INTERNAL_IPS"
 fi
 
 # 让用户选择
@@ -182,4 +186,3 @@ echo "客户端配置文件已保存到 /root/hy2/config.yaml"
 
 # 显示 Hysteria 服务状态
 systemctl status hysteria-server.service
-cat /etc/hysteria/config.yaml
