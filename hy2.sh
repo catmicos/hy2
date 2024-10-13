@@ -10,7 +10,7 @@ print_with_delay() {
     done
     echo
 }
-
+print_with_delay "Hysteria2 catmi" 0.03
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -30,45 +30,41 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 获取设备的所有 IPv4 和 IPv6 地址并显示
-print_with_delay "正在获取设备的内网 IP 地址..." 0.03
-IP_LIST=$(ip -o -4 addr show | awk '{print $4}' | cut -d/ -f1)
-IP_LIST_IPV6=$(ip -o -6 addr show | awk '{print $4}' | cut -d/ -f1)
+# 获取内网 IP 和公网 IP
+echo "正在获取设备的内网 IP 地址..."
+INTERNAL_IPS=$(hostname -I | tr ' ' '\n' | grep -E '^[0-9]+' | sort -u)
+PUBLIC_IP=$(curl -s https://api.ipify.org)
 
-# 获取公网 IP 地址
-print_with_delay "正在获取公网 IP 地址..." 0.03
-PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
+# 提示选择 IP
+echo "请选择你想使用的服务器 IP 地址:"
+if [ -z "$PUBLIC_IP" ]; then
+    echo "没有检测到公网 IP。"
+else
+    echo "公网 IP 地址: $PUBLIC_IP"
+fi
 
-# 列出内网和公网 IP 地址供用户选择
-print_with_delay "请选择你想使用的服务器 IP 地址:" 0.03
-i=1
-IP_OPTIONS=()  # 用于存储 IP 地址选项
-for ip in $IP_LIST; do
-    print_with_delay "$i. 内网 IPv4 地址: $ip" 0.03
-    IP_OPTIONS+=("$ip")  # 存储选项
-    ((i++))
-done
+# 仅显示公网 IP
+if [ -n "$PUBLIC_IP" ]; then
+    echo "1. 公网 IP 地址: $PUBLIC_IP"
+else
+    echo "请输入手动输入的服务器 IP 地址:"
+    read -p "服务器 IP: " SERVER_IP
+    SERVER_CHOICE=$SERVER_IP
+fi
 
-for ip6 in $IP_LIST_IPV6; do
-    print_with_delay "$i. 内网 IPv6 地址: $ip6" 0.03
-    IP_OPTIONS+=("$ip6")  # 存储选项
-    ((i++))
-done
-
-print_with_delay "$i. 公网 IP 地址: $PUBLIC_IP" 0.03
-IP_OPTIONS+=("$PUBLIC_IP")  # 存储公网 IP
-
-print_with_delay "总共有 $((i)) 个可选项。" 0.03
-
-# 让用户选择 IP 地址
-while true; do
-    read -p "请输入对应的数字选择: " IP_CHOICE
-    if [[ $IP_CHOICE =~ ^[0-9]+$ ]] && [ "$IP_CHOICE" -ge 1 ] && [ "$IP_CHOICE" -le "$i" ]; then
-        SELECTED_IP=${IP_OPTIONS[$((IP_CHOICE - 1))]}  # 选择对应的 IP 地址
-        break
-    else
-        print_with_delay "无效选择，请重新输入。" 0.03
-    fi
+# 如果有内网 IP，选择是否显示
+if [ -n "$INTERNAL_IPS" ]; then
+    echo "内网 IP 地址:"
+    select IP in $INTERNAL_IPS; do
+        if [[ -n $IP ]]; then
+            SERVER_CHOICE=${SERVER_CHOICE:-$IP}
+            break
+        else
+            echo "无效选择，退出脚本"
+            exit 1
+        fi
+    done
+fi
 done
 
 # 创建 Hysteria 2 服务端配置文件
