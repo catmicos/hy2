@@ -19,8 +19,25 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 提示输入服务器的 IPv6 地址
-read -p "请输入服务器的 IPv6 地址: " SERVER_IPV6
+# 获取公网 IPv4 和 IPv6 地址
+PUBLIC_IPV4=$(curl -s4 ifconfig.co)
+PUBLIC_IPV6=$(curl -s6 ifconfig.co)
+
+# 列出检测到的公网 IP 地址，供用户选择
+echo "请选择你想使用的服务器 IP 地址:"
+echo "1. IPv4 地址: $PUBLIC_IPV4"
+echo "2. IPv6 地址: $PUBLIC_IPV6"
+read -p "请输入对应的数字选择 (1 或 2): " IP_CHOICE
+
+# 根据用户的选择设置服务器 IP 地址
+if [ "$IP_CHOICE" == "1" ]; then
+    SERVER_IP=$PUBLIC_IPV4
+elif [ "$IP_CHOICE" == "2" ]; then
+    SERVER_IP=$PUBLIC_IPV6
+else
+    echo "无效选择，使用默认的 IPv6 地址..."
+    SERVER_IP=$PUBLIC_IPV6
+fi
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
@@ -55,7 +72,7 @@ systemctl enable hysteria-server.service
 # 创建客户端配置文件目录
 mkdir -p /root/hy2
 
-# 生成客户端配置文件，使用用户输入的 IPv6 地址和服务端端口
+# 生成客户端配置文件，使用用户选择的 IP 地址和服务端端口
 echo "生成客户端配置文件..."
 cat << EOF > /root/hy2/config.yaml
 port: 7890
@@ -89,7 +106,7 @@ dns:
 
 proxies:        
   - name: Hysteria2
-    server: $SERVER_IPV6
+    server: $SERVER_IP
     port: $PORT
     type: hysteria2
     up: "40 Mbps"
