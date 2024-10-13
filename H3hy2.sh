@@ -154,7 +154,7 @@ EOF
 # 显示生成的密码
 print_with_delay "Hysteria 2 安装和配置完成！" 0.03
 print_with_delay "认证密码: $AUTH_PASSWORD" 0.03
-print_with_delay "混淆密码: $OBFS_PASSWORD" 0.03
+print_with_delay "无混淆" 0.03
 print_with_delay "服务端配置文件已保存到 /etc/hysteria/config.yaml" 0.03
 print_with_delay "客户端配置文件已保存到 /root/hy2/config.yaml" 0.03
 
