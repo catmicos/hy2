@@ -22,13 +22,13 @@ read -p "请输入监听端口: " PORT
 # 默认监听地址设置为 IPv6
 LISTEN_ADDR="[::]:$PORT"
 
-# 提示输入服务器的 IPv6 地址
-read -p "请输入服务器的 IPv6 地址: " SERVER_IPV6
+# 提示输入服务器的 IP 地址
+read -p "请输入服务器的 IP 地址: " SERVER_IPV6
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
 cat << EOF > /etc/hysteria/config.yaml
-listen: $LISTEN_ADDR
+listen: $PORT
 
 tls:
   cert: /etc/hysteria/server.crt
