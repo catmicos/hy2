@@ -19,31 +19,66 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 获取公网 IPv4 和 IPv6 地址（带有超时）
-echo "正在检测公网 IP..."
-PUBLIC_IPV4=$(curl -s4 --connect-timeout 5 ifconfig.co || echo "未检测到 IPv4")
-PUBLIC_IPV6=$(curl -s6 --connect-timeout 5 ifconfig.co || echo "未检测到 IPv6")
+# 获取设备的所有 IPv4 和 IPv6 地址并显示
+echo "正在获取设备的内网 IP 地址..."
+IP_LIST=$(ip -o -4 addr show | awk '{print $4}' | cut -d/ -f1)
+IP_LIST_IPV6=$(ip -o -6 addr show | awk '{print $4}' | cut -d/ -f1)
 
-# 列出检测到的公网 IP 地址，供用户选择
+# 获取公网 IP 地址
+echo "正在获取公网 IP 地址..."
+PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
+
+# 列出内网和公网 IP 地址供用户选择
 echo "请选择你想使用的服务器 IP 地址:"
-echo "1. IPv4 地址: $PUBLIC_IPV4"
-echo "2. IPv6 地址: $PUBLIC_IPV6"
-read -p "请输入对应的数字选择 (1 或 2): " IP_CHOICE
+i=1
+for ip in $IP_LIST; do
+    echo "$i. 内网 IPv4 地址: $ip"
+    ((i++))
+done
+
+for ip6 in $IP_LIST_IPV6; do
+    echo "$i. 内网 IPv6 地址: $ip6"
+    ((i++))
+done
+
+echo "$i. 公网 IP 地址: $PUBLIC_IP"
+((i++))
+
+read -p "请输入对应的数字选择: " IP_CHOICE
 
 # 根据用户的选择设置服务器 IP 地址
-if [ "$IP_CHOICE" == "1" ] && [ "$PUBLIC_IPV4" != "未检测到 IPv4" ]; then
-    SERVER_IP=$PUBLIC_IPV4
-elif [ "$IP_CHOICE" == "2" ] && [ "$PUBLIC_IPV6" != "未检测到 IPv6" ]; then
-    SERVER_IP=$PUBLIC_IPV6
-else
-    echo "无效选择或未能检测到公网 IP，退出脚本。"
+SELECTED_IP=""
+i=1
+for ip in $IP_LIST; do
+    if [ "$IP_CHOICE" == "$i" ]; then
+        SELECTED_IP=$ip
+        break
+    fi
+    ((i++))
+done
+
+for ip6 in $IP_LIST_IPV6; do
+    if [ "$IP_CHOICE" == "$i" ]; then
+        SELECTED_IP=$ip6
+        break
+    fi
+    ((i++))
+done
+
+if [ "$IP_CHOICE" == "$i" ]; then
+    SELECTED_IP=$PUBLIC_IP
+fi
+
+# 如果未选择 IP 地址则退出
+if [ -z "$SELECTED_IP" ]; then
+    echo "无效选择，退出脚本。"
     exit 1
 fi
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
 cat << EOF > /etc/hysteria/config.yaml
-listen: "[::]:$PORT"
+listen: "*:$PORT"
 
 tls:
   cert: /etc/hysteria/server.crt
@@ -107,7 +142,7 @@ dns:
 
 proxies:        
   - name: Hysteria2
-    server: $SERVER_IP
+    server: $SELECTED_IP
     port: $PORT
     type: hysteria2
     up: "40 Mbps"
