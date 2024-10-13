@@ -54,7 +54,7 @@ fi
 # 创建 Hysteria 2 服务端配置文件
 print_with_delay "生成 Hysteria 2 配置文件..." 0.03
 cat << EOF > /etc/hysteria/config.yaml
-listen: "*:$PORT"
+listen: ":$PORT"
 
 tls:
   cert: /etc/hysteria/server.crt
