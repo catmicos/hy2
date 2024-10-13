@@ -135,3 +135,11 @@ echo "客户端配置文件已保存到 /root/hy2/config.yaml"
 # 重启 Hysteria 服务以应用配置
 echo "重启 Hysteria 服务以应用新配置..."
 systemctl restart hysteria-server.service
+
+# 显示 Hysteria 服务状态
+echo "显示 Hysteria 服务状态..."
+systemctl status hysteria-server.service --no-pager
+
+# 显示客户端配置文件的内容
+echo "客户端配置文件内容如下:"
+cat /root/hy2/config.yaml
