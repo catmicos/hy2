@@ -122,7 +122,6 @@ proxies:
     type: hysteria2
     up: "40 Mbps"
     down: "120 Mbps"
-    udp: true
     sni: bing.com
     password: $AUTH_PASSWORD
     skip-cert-verify: true
