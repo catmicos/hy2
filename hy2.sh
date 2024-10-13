@@ -10,7 +10,7 @@ print_with_delay() {
     done
     echo
 }
-
+print_with_delay " Hysteria2.catmi" 0.06
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -28,40 +28,38 @@ AUTH_PASSWORD=$(openssl rand -base64 16)
 OBFS_PASSWORD=$(openssl rand -base64 16)
 
 # 获取内网 IP 和公网 IP
-echo "正在获取设备的内网 IP 地址..."
+print_with_delay "正在获取设备的内网 IP 地址..." 0.03
 INTERNAL_IPS=$(hostname -I | tr ' ' '\n' | grep -E '^[0-9]+' | sort -u)
 PUBLIC_IP=$(curl -s https://api.ipify.org)
 
 # 提示选择 IP
 echo "请选择你想使用的服务器 IP 地址:"
-if [ -z "$PUBLIC_IP" ]; then
-    echo "没有检测到公网 IP。"
-else
-    echo "公网 IP 地址: $PUBLIC_IP"
-    echo "1. 公网 IP 地址: $PUBLIC_IP"
-fi
-
-# 如果有内网 IP，显示并选择
-if [ -n "$INTERNAL_IPS" ]; then
-    echo "内网 IP 地址:"
-    echo "$INTERNAL_IPS" | nl -w 2 -s '. '  # 使用 nl 命令给内网 IP 添加行号
-fi
-
-# 合并选项并允许用户选择
 CHOICES=()
+
+# 添加公网 IP 选项
 if [ -n "$PUBLIC_IP" ]; then
+    echo "公网 IP 地址: $PUBLIC_IP"
     CHOICES+=("$PUBLIC_IP")
 fi
+
+# 添加内网 IP 选项
 if [ -n "$INTERNAL_IPS" ]; then
-    while IFS= read -r line; do
-        CHOICES+=("$line")
+    echo "内网 IP 地址:"
+    while read -r ip; do
+        CHOICES+=("$ip")
     done <<< "$INTERNAL_IPS"
 fi
 
+# 显示选项
+for index in "${!CHOICES[@]}"; do
+    echo "$((index + 1)). ${CHOICES[index]}"
+done
+
 # 让用户选择
-select CHOSEN_IP in "${CHOICES[@]}"; do
-    if [[ -n $CHOSEN_IP ]]; then
-        SERVER_CHOICE=$CHOSEN_IP
+while true; do
+    read -p "请输入对应的数字选择: " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#CHOICES[@]}" ]; then
+        SERVER_CHOICE="${CHOICES[$((choice - 1))]}"
         break
     else
         echo "无效选择，请重新选择."
@@ -186,3 +184,4 @@ echo "客户端配置文件已保存到 /root/hy2/config.yaml"
 
 # 显示 Hysteria 服务状态
 systemctl status hysteria-server.service
+cat /etc/hysteria/config.yaml
