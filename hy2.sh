@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# 显示带延迟的打印
+# 打印带延迟的消息
 print_with_delay() {
     local message="$1"
     local delay="$2"
     for (( i=0; i<${#message}; i++ )); do
-        printf "%s" "${message:i:1}"
+        printf "%s" "${message:$i:1}"
         sleep "$delay"
     done
-    echo
+    echo ""
 }
-print_with_delay " Hysteria2.catmi" 0.06
+print_with_delay " **************Hysteria 2.catmi**************" 0.03
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -27,47 +27,12 @@ openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
 AUTH_PASSWORD=$(openssl rand -base64 16)
 OBFS_PASSWORD=$(openssl rand -base64 16)
 
-# 获取内网 IP 和公网 IP
-print_with_delay "正在获取设备的内网 IP 地址..." 0.03
-INTERNAL_IPS=$(hostname -I | tr ' ' '\n' | grep -E '^[0-9]+' | sort -u)
-PUBLIC_IP=$(curl -s https://api.ipify.org)
-
-# 提示选择 IP
-echo "请选择你想使用的服务器 IP 地址:"
-CHOICES=()
-
-# 添加公网 IP 选项
-if [ -n "$PUBLIC_IP" ]; then
-    echo "公网 IP 地址: $PUBLIC_IP"
-    CHOICES+=("$PUBLIC_IP")
-fi
-
-# 添加内网 IP 选项
-if [ -n "$INTERNAL_IPS" ]; then
-    echo "内网 IP 地址:"
-    while read -r ip; do
-        CHOICES+=("$ip")
-    done <<< "$INTERNAL_IPS"
-fi
-
-# 显示选项
-for index in "${!CHOICES[@]}"; do
-    echo "$((index + 1)). ${CHOICES[index]}"
-done
-
-# 让用户选择
-while true; do
-    read -p "请输入对应的数字选择: " choice
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#CHOICES[@]}" ]; then
-        SERVER_CHOICE="${CHOICES[$((choice - 1))]}"
-        break
-    else
-        echo "无效选择，请重新选择."
-    fi
-done
-
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
+
+# 获取公网 IP 地址
+PUBLIC_IP=$(curl -s https://api.ipify.org)
+echo "公网 IP 地址: $PUBLIC_IP"
 
 # 创建 Hysteria 2 服务端配置文件
 print_with_delay "生成 Hysteria 2 配置文件..." 0.03
@@ -105,7 +70,7 @@ systemctl enable hysteria-server.service
 # 创建客户端配置文件目录
 mkdir -p /root/hy2
 
-# 生成客户端配置文件，使用用户输入的 IP 地址和服务端端口
+# 生成客户端配置文件，使用用户输入的公网 IP 地址和服务端端口
 print_with_delay "生成客户端配置文件..." 0.03
 cat << EOF > /root/hy2/config.yaml
 port: 7890
@@ -139,7 +104,7 @@ dns:
 
 proxies:        
   - name: Hysteria2
-    server: $SERVER_CHOICE
+    server: $PUBLIC_IP
     port: $PORT
     type: hysteria2
     up: "40 Mbps"
@@ -175,12 +140,12 @@ rules:
   - MATCH,节点选择
 EOF
 
-# 显示生成的密码和状态
+# 显示生成的密码
 print_with_delay "Hysteria 2 安装和配置完成！" 0.03
-echo "认证密码: $AUTH_PASSWORD"
-echo "混淆密码: $OBFS_PASSWORD"
-echo "服务端配置文件已保存到 /etc/hysteria/config.yaml"
-echo "客户端配置文件已保存到 /root/hy2/config.yaml"
+print_with_delay "认证密码: $AUTH_PASSWORD" 0.03
+print_with_delay "混淆密码: $OBFS_PASSWORD" 0.03
+print_with_delay "服务端配置文件已保存到 /etc/hysteria/config.yaml" 0.03
+print_with_delay "客户端配置文件已保存到 /root/hy2/config.yaml" 0.03
 
 # 显示 Hysteria 服务状态
 systemctl status hysteria-server.service
