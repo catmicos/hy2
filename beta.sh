@@ -19,9 +19,10 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 获取公网 IPv4 和 IPv6 地址
-PUBLIC_IPV4=$(curl -s4 ifconfig.co)
-PUBLIC_IPV6=$(curl -s6 ifconfig.co)
+# 获取公网 IPv4 和 IPv6 地址（带有超时）
+echo "正在检测公网 IP..."
+PUBLIC_IPV4=$(curl -s4 --connect-timeout 5 ifconfig.co || echo "未检测到 IPv4")
+PUBLIC_IPV6=$(curl -s6 --connect-timeout 5 ifconfig.co || echo "未检测到 IPv6")
 
 # 列出检测到的公网 IP 地址，供用户选择
 echo "请选择你想使用的服务器 IP 地址:"
@@ -30,13 +31,13 @@ echo "2. IPv6 地址: $PUBLIC_IPV6"
 read -p "请输入对应的数字选择 (1 或 2): " IP_CHOICE
 
 # 根据用户的选择设置服务器 IP 地址
-if [ "$IP_CHOICE" == "1" ]; then
+if [ "$IP_CHOICE" == "1" ] && [ "$PUBLIC_IPV4" != "未检测到 IPv4" ]; then
     SERVER_IP=$PUBLIC_IPV4
-elif [ "$IP_CHOICE" == "2" ]; then
+elif [ "$IP_CHOICE" == "2" ] && [ "$PUBLIC_IPV6" != "未检测到 IPv6" ]; then
     SERVER_IP=$PUBLIC_IPV6
 else
-    echo "无效选择，使用默认的 IPv6 地址..."
-    SERVER_IP=$PUBLIC_IPV6
+    echo "无效选择或未能检测到公网 IP，退出脚本。"
+    exit 1
 fi
 
 # 创建 Hysteria 2 服务端配置文件
