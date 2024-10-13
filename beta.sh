@@ -4,7 +4,7 @@
 echo "正在安装 Hysteria 2..."
 bash <(curl -fsSL https://get.hy2.sh/)
 
-# 生成自签证书
+# 生成自签名证书
 echo "生成自签名证书..."
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
     -keyout /etc/hysteria/server.key -out /etc/hysteria/server.crt \
@@ -19,12 +19,11 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 默认监听地址设置为 IPv6 0.0.0.0/::，支持 IPv4 和 IPv6
+# 默认监听地址设置为 IPv6
 LISTEN_ADDR="[::]:$PORT"
 
-# 获取本机 IP 地址（IPv4 和 IPv6）
-SERVER_IPV4=$(hostname -I | awk '{print $1}')
-SERVER_IPV6=$(hostname -I | awk '{print $2}')
+# 提示输入服务器的 IPv6 地址
+read -p "请输入服务器的 IPv6 地址: " SERVER_IPV6
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
@@ -51,18 +50,15 @@ obfs:
     password: $OBFS_PASSWORD
 EOF
 
-# 重启 Hysteria 服务以应用配置
-echo "重启 Hysteria 服务以应用新配置..."
-systemctl restart hysteria-server.service
-
 # 启动并启用 Hysteria 服务
 echo "启动 Hysteria 服务..."
 systemctl enable hysteria-server.service
+systemctl start hysteria-server.service
 
 # 创建客户端配置文件目录
 mkdir -p /root/hy2
 
-# 生成客户端配置文件，使用服务端相同端口
+# 生成客户端配置文件，使用用户输入的 IPv6 地址和服务端端口
 echo "生成客户端配置文件..."
 cat << EOF > /root/hy2/config.yaml
 port: 7890
