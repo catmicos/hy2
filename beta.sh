@@ -78,7 +78,7 @@ fi
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
 cat << EOF > /etc/hysteria/config.yaml
-listen: "*:$PORT"
+listen: ":$PORT"  # 这里使用省略地址的格式，只监听端口
 
 tls:
   cert: /etc/hysteria/server.crt
