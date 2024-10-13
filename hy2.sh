@@ -42,49 +42,34 @@ PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
 # 列出内网和公网 IP 地址供用户选择
 print_with_delay "请选择你想使用的服务器 IP 地址:" 0.03
 i=1
+IP_OPTIONS=()  # 用于存储 IP 地址选项
 for ip in $IP_LIST; do
     print_with_delay "$i. 内网 IPv4 地址: $ip" 0.03
+    IP_OPTIONS+=("$ip")  # 存储选项
     ((i++))
 done
 
 for ip6 in $IP_LIST_IPV6; do
     print_with_delay "$i. 内网 IPv6 地址: $ip6" 0.03
+    IP_OPTIONS+=("$ip6")  # 存储选项
     ((i++))
 done
 
 print_with_delay "$i. 公网 IP 地址: $PUBLIC_IP" 0.03
-((i++))
+IP_OPTIONS+=("$PUBLIC_IP")  # 存储公网 IP
 
-read -p "请输入对应的数字选择: " IP_CHOICE
+print_with_delay "总共有 $((i)) 个可选项。" 0.03
 
-# 根据用户的选择设置服务器 IP 地址
-SELECTED_IP=""
-i=1
-for ip in $IP_LIST; do
-    if [ "$IP_CHOICE" == "$i" ]; then
-        SELECTED_IP=$ip
+# 让用户选择 IP 地址
+while true; do
+    read -p "请输入对应的数字选择: " IP_CHOICE
+    if [[ $IP_CHOICE =~ ^[0-9]+$ ]] && [ "$IP_CHOICE" -ge 1 ] && [ "$IP_CHOICE" -le "$i" ]; then
+        SELECTED_IP=${IP_OPTIONS[$((IP_CHOICE - 1))]}  # 选择对应的 IP 地址
         break
+    else
+        print_with_delay "无效选择，请重新输入。" 0.03
     fi
-    ((i++))
 done
-
-for ip6 in $IP_LIST_IPV6; do
-    if [ "$IP_CHOICE" == "$i" ]; then
-        SELECTED_IP=$ip6
-        break
-    fi
-    ((i++))
-done
-
-if [ "$IP_CHOICE" == "$i" ]; then
-    SELECTED_IP=$PUBLIC_IP
-fi
-
-# 如果未选择 IP 地址则退出
-if [ -z "$SELECTED_IP" ]; then
-    print_with_delay "无效选择，退出脚本。" 0.03
-    exit 1
-fi
 
 # 创建 Hysteria 2 服务端配置文件
 print_with_delay "生成 Hysteria 2 配置文件..." 0.03
