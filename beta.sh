@@ -16,11 +16,15 @@ openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
 AUTH_PASSWORD=$(openssl rand -base64 16)
 OBFS_PASSWORD=$(openssl rand -base64 16)
 
-# 提示输入监听地址和端口
-read -p "请输入监听地址和端口（格式: [::]:port 或 0.0.0.0:port）: " LISTEN_ADDR
+# 提示输入端口号
+read -p "请输入监听端口: " PORT
 
-# 获取本机 IP 地址
-SERVER_IP=$(hostname -I | awk '{print $1}')
+# 默认监听地址设置为 IPv6 0.0.0.0/::，支持 IPv4 和 IPv6
+LISTEN_ADDR="[::]:$PORT"
+
+# 获取本机 IP 地址（IPv4 和 IPv6）
+SERVER_IPV4=$(hostname -I | awk '{print $1}')
+SERVER_IPV6=$(hostname -I | awk '{print $2}')
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
@@ -47,9 +51,12 @@ obfs:
     password: $OBFS_PASSWORD
 EOF
 
+# 重启 Hysteria 服务以应用配置
+echo "重启 Hysteria 服务以应用新配置..."
+systemctl restart hysteria-server.service
+
 # 启动并启用 Hysteria 服务
 echo "启动 Hysteria 服务..."
-systemctl start hysteria-server.service
 systemctl enable hysteria-server.service
 
 # 提示输入客户端端口
@@ -92,7 +99,7 @@ dns:
 
 proxies:        
   - name: Hysteria2
-    server: $SERVER_IP
+    server: $SERVER_IPV6
     port: $CLIENT_PORT
     type: hysteria2
     up: "40 Mbps"
