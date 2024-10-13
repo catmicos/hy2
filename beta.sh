@@ -19,16 +19,13 @@ OBFS_PASSWORD=$(openssl rand -base64 16)
 # 提示输入监听端口号
 read -p "请输入监听端口: " PORT
 
-# 默认监听地址设置为 IPv6
-LISTEN_ADDR="[::]:$PORT"
-
-# 提示输入服务器的 IP 地址
-read -p "请输入服务器的 IP 地址: " SERVER_IPV6
+# 提示输入服务器的 IPv6 地址
+read -p "请输入服务器的 IPv6 地址: " SERVER_IPV6
 
 # 创建 Hysteria 2 服务端配置文件
 echo "生成 Hysteria 2 配置文件..."
 cat << EOF > /etc/hysteria/config.yaml
-listen: $PORT
+listen: "[::]:$PORT"
 
 tls:
   cert: /etc/hysteria/server.crt
@@ -52,8 +49,8 @@ EOF
 
 # 启动并启用 Hysteria 服务
 echo "启动 Hysteria 服务..."
-systemctl enable hysteria-server.service
 systemctl start hysteria-server.service
+systemctl enable hysteria-server.service
 
 # 创建客户端配置文件目录
 mkdir -p /root/hy2
@@ -134,3 +131,7 @@ echo "认证密码: $AUTH_PASSWORD"
 echo "混淆密码: $OBFS_PASSWORD"
 echo "服务端配置文件已保存到 /etc/hysteria/config.yaml"
 echo "客户端配置文件已保存到 /root/hy2/config.yaml"
+
+# 重启 Hysteria 服务以应用配置
+echo "重启 Hysteria 服务以应用新配置..."
+systemctl restart hysteria-server.service
