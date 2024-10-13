@@ -10,7 +10,7 @@ print_with_delay() {
     done
     echo ""
 }
-
+print_with_delay "**************Hysteria 2.catmi*************" 0.03
 # 自动安装 Hysteria 2
 print_with_delay "正在安装 Hysteria 2..." 0.03
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -166,3 +166,6 @@ print_with_delay "客户端配置文件已保存到 /root/hy2/config.yaml" 0.03
 
 # 显示 Hysteria 服务状态
 systemctl status hysteria-server.service
+print_with_delay "**************Hysteria 2.catmi.客户端配置*************" 0.03
+cat /root/hy2/config.yaml
+print_with_delay "**************Hysteria 2.catmi.end*************" 0.03
